@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: '0.0.1-SNAPSHOT'
+  version: '0.1.0'
   title: Device Pool Orchestrator
 servers:
   - url: http://localhost:8080

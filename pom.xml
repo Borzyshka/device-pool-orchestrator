@@ -10,7 +10,7 @@
 
     <groupId>com.borzyshka</groupId>
     <artifactId>device-pool-orchestrator</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.1.0</version>
     <name>device-pool-orchestrator</name>
     <description>application designed to create Appium Servers and book devices for tests run</description>
 
