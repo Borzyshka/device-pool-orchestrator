@@ -1,0 +1,382 @@
+openapi: 3.0.0
+info:
+  version: '0.0.1-SNAPSHOT'
+  title: Device Pool Orchestrator
+servers:
+  - url: http://localhost:8080
+paths:
+  /v1/devices:
+    get:
+      tags:
+        - devices
+      summary: "Get all connected devices"
+      responses:
+        200:
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DevicePoolStatusResponse"
+  /v1/servers:
+    get:
+      tags:
+        - servers
+      summary: "Get all acquired servers"
+      responses:
+        200:
+          description: "Severs retrieved"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerPoolStatusResponse"
+    delete:
+      tags:
+        - servers
+      summary: "Stop and delete all acquired servers"
+      responses:
+        204:
+          description: "All servers deleted"
+    post:
+      tags:
+        - servers
+      summary: "Acquire new Server"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerReservationRequest"
+        required: true
+      responses:
+        200:
+          description: "Server acquired"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerReservationResponse"
+        400:
+          description: |
+            - code: BAD_REQUEST
+            - messages:
+              - Host should be a valid IP address or missing
+              - Port must be greater than or equal to 1024
+              - Port must be less than or equal to 65535
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/servers/{reservationId}:
+    delete:
+      tags:
+        - servers
+      summary: "Stop server and remove reservation"
+      parameters:
+        - name: "reservationId"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        204:
+          description: "Server removed"
+        404:
+          description: |
+            - code: RESERVATION_NOT_FOUND
+            - messages:
+              - Reservation with id '{id}' not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/servers/{reservationId}/start:
+    post:
+      tags:
+        - servers
+      summary: "Start Server"
+      parameters:
+        - name: "reservationId"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        200:
+          description: "Server started"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerPoolObjectStatusResponse"
+        404:
+          description: |
+            - code: RESERVATION_NOT_FOUND
+            - messages:
+              - Reservation with id '{id}' not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/servers/{reservationId}/stop:
+    post:
+      tags:
+        - servers
+      summary: "stop server"
+      parameters:
+        - name: "reservationId"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        200:
+          description: "Server started"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerPoolObjectStatusResponse"
+        404:
+          description: |
+            - code: RESERVATION_NOT_FOUND
+            - messages:
+              - Reservation with id '{id}' not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/bundles:
+    get:
+      tags:
+        - bundles
+      summary: "get all reserved bundles"
+      responses:
+        200:
+          description: "all reserved bundles are shown"
+          content:
+            'application/json':
+              schema:
+                $ref: "#/components/schemas/BundlePoolStatusResponse"
+    delete:
+      tags:
+        - bundles
+      summary: "recycle all servers and devices in bundle pool"
+      responses:
+        204:
+          description: "items successfully recycled"
+  /v1/bundles/reservations:
+    post:
+      tags:
+        - bundles
+      summary: "Acquire device/server bundle"
+      parameters:
+        - name: "quantity"
+          in: "query"
+          required: false
+          schema:
+            type: "integer"
+            format: "int32"
+            example: 2
+      responses:
+        200:
+          description: "Bundle acquired"
+          content:
+            'application/json':
+              schema:
+                $ref:  "#/components/schemas/BundlePoolReservationResponse"
+        409:
+          description: |
+            - codes: 
+              - ALL_OBJECTS_BOOKED
+            - messages:
+              - Timeout Reached waiting for a free object. All objects are booked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /v1/bundles/{reservationId}:
+    delete:
+      tags:
+        - bundles
+      summary: "Recycle Device/Server bundle"
+      parameters:
+        - name: "reservationId"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        204:
+          description: "Bundle Recycled"
+        404:
+          description: |
+            - codes: 
+              - RESERVATION_NOT_FOUND
+            - messages:
+              - Reservation with reservationId '{reservationId}' not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    DeviceInfo:
+      required:
+        - udid
+      properties:
+        udid:
+          type: "string"
+          example: "9cbebc40-dc37-44f8-b9d1-570b59e5c299"
+    DevicePoolObjectStatusResponse:
+      required:
+        - details
+        - status
+      properties:
+        details:
+          $ref: "#/components/schemas/DeviceInfo"
+        status:
+          type: "string"
+          enum:
+            - "FREE"
+            - "BUSY"
+    DevicePoolStatusResponse:
+      required:
+        - size
+        - objects
+      properties:
+        size:
+          type: "integer"
+          format: "int32"
+          example: 1
+        objects:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/DevicePoolObjectStatusResponse"
+    ServerPoolObjectStatusResponse:
+      required:
+        - id
+        - host
+        - status
+      properties:
+        id:
+          type: "string"
+          example: "9cbebc40-dc37-44f8-b9d1-570b59e5c299"
+        host:
+          type: "string"
+          format: "url"
+          example: "http://127.0.0.1:4723"
+        status:
+          type: "string"
+          enum:
+            - "RUNNING"
+            - "IDLE"
+    ServerPoolStatusResponse:
+      required:
+        - size
+        - objects
+      properties:
+        size:
+          type: "integer"
+          format: "int32"
+          example: 1
+        objects:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/ServerPoolObjectStatusResponse"
+    ServerReservationRequest:
+      properties:
+        host:
+          type: "string"
+          example: "127.0.0.1"
+        port:
+          type: "integer"
+          format: "int32"
+          example: 4723
+    ServerReservationResponse:
+      required:
+        - reservationId
+        - url
+      properties:
+        reservationId:
+          type: "string"
+          example: "9cbebc40-dc37-44f8-b9d1-570b59e5c299"
+        url:
+          type: "string"
+          format: "url"
+          example: "http://127.0.0.1:4723"
+    ErrorResponse:
+      required:
+        - code
+        - status
+        - message
+      properties:
+        code:
+          type: "integer"
+          description: Http Error Code
+          format: "int32"
+          example: 400
+        status:
+          type: string
+          description: Http Error Status
+          example: BAD_REQUEST
+        message:
+          type: string
+          description: Comprehensive error message
+          example: Something went wrong
+    BundlePoolObjectStatusResponse:
+      required:
+        - reservationId
+        - device
+        - deviceCapabilities
+        - server
+      properties:
+        reservationId:
+          type: "string"
+          example: "9cbebc40-dc37-44f8-b9d1-570b59e5c299"
+        device:
+          $ref: "#/components/schemas/DevicePoolObjectStatusResponse"
+        deviceCapabilities:
+          type: object
+          example: {
+            "heading": "comfirmation email"
+          }
+        server:
+          $ref: "#/components/schemas/ServerPoolObjectStatusResponse"
+    BundlePoolStatusResponse:
+      required:
+        - size
+        - content
+      properties:
+        size:
+          type: "integer"
+          format: "int32"
+          example: 1
+        content:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/BundlePoolObjectStatusResponse"
+    BundleReservationResponse:
+      required:
+        - reservationId
+        - deviceInfo
+        - serverHost
+        - capabilities
+      properties:
+        reservationId:
+          type: "string"
+          example: "9cbebc40-dc37-44f8-b9d1-570b59e5c299"
+        deviceInfo:
+          $ref: "#/components/schemas/DeviceInfo"
+        serverHost:
+          type: "string"
+          format: "url"
+          example: "http://127.0.0.1:4723"
+        capabilities:
+          type: object
+          example: {
+            "SystemPort": 1234,
+            "adbForwardPort": 4321
+          }
+    BundlePoolReservationResponse:
+      type: "object"
+      properties:
+        bundles:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/BundleReservationResponse"

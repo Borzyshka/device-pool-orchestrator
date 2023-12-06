@@ -1,0 +1,18 @@
+server:
+  port: 8080
+app:
+  appium:
+    # appium-path:
+    # driver-executable:
+    default-host: 127.0.0.1
+  timeout:
+      duration: 2
+      time-unit: MINUTES
+logging:
+  level:
+    com.com.borzyshka: debug
+    root: info
+springdoc:
+  swagger-ui:
+    url: "/openapi.yaml"
+    path: "/openapi.html"
